@@ -1,36 +1,32 @@
 // @ts-check
 import assert from "node:assert";
-import { randomFillSync } from "node:crypto";
+import { randomFillSync, randomInt } from "node:crypto";
 import { setTimeout } from "node:timers/promises";
 
 import dotenv from "dotenv";
 import { cleanEnv, str, url } from "envalid";
-import puppeteer from "puppeteer";
+import { launch } from "puppeteer";
+
+import data from "./data.json" assert { type: "json" };
 
 dotenv.config();
 const { VOTING_SITE_URL, TARGET_NAME } = cleanEnv(process.env, {
   VOTING_SITE_URL: url(),
   TARGET_NAME: str(),
 });
-const USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36";
 
-const browser = await puppeteer.launch({
+const browser = await launch({
   headless: "new",
   executablePath: process.env.CHROME_BIN,
-  args: [
-    "--no-sandbox",
-    "--headless",
-    "--disable-gpu",
-    "--disable-dev-shm-usage",
-  ],
+  args: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
 });
 
 let result;
 
 try {
   const page = await browser.newPage();
-  await page.setUserAgent(USER_AGENT);
+  const userAgent = data.userAgents[randomInt(0, data.userAgents.length)].value;
+  await page.setUserAgent(userAgent);
   await page.setExtraHTTPHeaders({
     "Accept-Language": "ru-RU",
   });
@@ -118,5 +114,5 @@ try {
 
   console.log("unable to vote");
   console.log(result);
-  assert(result, "С данного IP-адреса уже проголосовали");
+  assert(result?.includes("С данного IP-адреса уже проголосовали"));
 }
